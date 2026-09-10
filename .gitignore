@@ -1,0 +1,10 @@
+/config/database.php
+/.env
+/node_modules/
+/assets/css/tailwind.generated.css
+/uploads/*
+!/uploads/.gitkeep
+*.log
+.DS_Store
+Thumbs.db
+

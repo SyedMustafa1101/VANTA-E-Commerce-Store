@@ -1,0 +1,14 @@
+{
+  "name": "vanta-store",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Premium animated streetwear commerce experience built with PHP, Tailwind CSS, GSAP, and Lenis.",
+  "scripts": {
+    "css:watch": "tailwindcss -i ./assets/css/tailwind.input.css -o ./assets/css/tailwind.generated.css --watch",
+    "css:build": "tailwindcss -i ./assets/css/tailwind.input.css -o ./assets/css/tailwind.generated.css --minify"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.17"
+  }
+}
+
