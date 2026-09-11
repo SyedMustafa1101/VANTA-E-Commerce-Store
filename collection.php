@@ -29,19 +29,13 @@ if ($collection === null) {
     return;
 }
 
-$collectionImages = [
-    'new-drop' => ['images/catalog/vanta-essential-look.jpg', 'images/catalog/vanta-after-dark-look.jpg'],
-    'essentials' => ['images/catalog/vanta-accessories-still-life.jpg', 'images/catalog/vanta-essential-look.jpg'],
-    'after-dark' => ['images/catalog/vanta-after-dark-look.jpg', 'images/vanta-foundation-campaign.jpg'],
-    'limited' => ['images/vanta-foundation-campaign.jpg', 'images/catalog/vanta-after-dark-look.jpg'],
-];
 $products = catalog_products_for_collection($collection['title']);
 $pageTitle = $collection['title'] . ' — VANTA';
 $pageDescription = $collection['copy'];
 $currentPage = 'collections';
 $bodyClass = 'collection-page collection-page--' . $slug;
 $headerTheme = in_array($slug, ['new-drop', 'after-dark', 'limited'], true) ? 'overlay' : 'solid';
-$images = $collectionImages[$slug];
+$images = [$collection['primary_image'], $collection['secondary_image']];
 
 require __DIR__ . '/includes/header.php';
 ?>

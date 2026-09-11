@@ -7,6 +7,9 @@ $pageDescription = $pageDescription ?? 'Premium contemporary streetwear built fo
 $currentPage = $currentPage ?? 'home';
 $bodyClass = $bodyClass ?? '';
 $headerTheme = $headerTheme ?? 'overlay';
+$viewer = current_user();
+$initialCart = cart_service()->summary();
+$initialWishlistIds = wishlist_service()->productIds();
 $catalogForClient = array_map(
     static function (array $product): array {
         $product['images'] = array_map(static fn (string $image): string => asset($image), $product['images']);
@@ -22,6 +25,11 @@ $catalogForClient = array_map(
     },
     catalog_products()
 );
+$clientConfig = [
+    'baseUrl' => (string) config('base_url', ''),
+    'csrfToken' => csrf_token(),
+    'authenticated' => $viewer !== null,
+];
 ?>
 <!doctype html>
 <html lang="en" class="bg-vanta-black">
@@ -30,6 +38,7 @@ $catalogForClient = array_map(
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#0A0A0A">
     <meta name="description" content="<?= e($pageDescription) ?>">
+    <meta name="csrf-token" content="<?= e(csrf_token()) ?>">
     <title><?= e($pageTitle) ?></title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%230A0A0A'/%3E%3Cpath d='M11 13h12l9 28 9-28h12L38 53H26z' fill='%23B7FF2A'/%3E%3C/svg%3E">
     <script>document.documentElement.classList.add('js');</script>
@@ -73,13 +82,13 @@ $catalogForClient = array_map(
 
             <nav class="desktop-actions" aria-label="Utility navigation">
                 <button type="button" data-search-open>Search</button>
-                <button type="button" data-foundation-notice="Customer accounts connect in Phase 3.">Account</button>
+                <a href="<?= e(url($viewer ? 'account/index.php' : 'login.php')) ?>"><?= $viewer ? 'Account' : 'Sign in' ?></a>
                 <button class="icon-action wishlist-action" type="button" data-wishlist-open aria-label="Open wishlist">
                     <?= icon('heart', 'h-4 w-4') ?>
-                    <span class="utility-count" data-wishlist-count>0</span>
+                    <span class="utility-count" data-wishlist-count><?= count($initialWishlistIds) ?></span>
                 </button>
                 <button class="bag-action" type="button" data-cart-open>
-                    Bag <span class="bag-count" data-cart-count>0</span>
+                    Bag <span class="bag-count" data-cart-count><?= (int) $initialCart['count'] ?></span>
                 </button>
             </nav>
 
@@ -101,11 +110,12 @@ $catalogForClient = array_map(
             <a href="<?= e(url('collection.php?collection=new-drop')) ?>" data-transition-link data-transition-name="NEW DROP" data-menu-link><span>01</span> New Drop</a>
             <a href="<?= e(url('shop.php')) ?>" data-transition-link data-transition-name="SHOP" data-menu-link><span>02</span> Shop</a>
             <a href="<?= e(url('index.php#collections')) ?>" data-menu-link><span>03</span> Collections</a>
+            <a href="<?= e(url($viewer ? 'account/index.php' : 'login.php')) ?>" data-menu-link><span>04</span> <?= $viewer ? 'Account' : 'Sign in' ?></a>
         </nav>
         <div class="mobile-menu__secondary">
             <button type="button" data-search-open>Search</button>
-            <button type="button" data-wishlist-open>Wishlist (<span data-wishlist-count>0</span>)</button>
-            <button type="button" data-cart-open>Bag (<span data-cart-count>0</span>)</button>
+            <button type="button" data-wishlist-open>Wishlist (<span data-wishlist-count><?= count($initialWishlistIds) ?></span>)</button>
+            <button type="button" data-cart-open>Bag (<span data-cart-count><?= (int) $initialCart['count'] ?></span>)</button>
         </div>
         <p class="mobile-menu__statement">Own the night.</p>
     </div>
@@ -147,7 +157,7 @@ $catalogForClient = array_map(
         <div class="store-drawer__header">
             <div>
                 <p class="eyebrow">YOUR SELECTION</p>
-                <h2 id="cart-title">Bag <span data-cart-count>0</span></h2>
+                <h2 id="cart-title">Bag <span data-cart-count><?= (int) $initialCart['count'] ?></span></h2>
             </div>
             <button class="overlay-close overlay-close--dark" type="button" data-cart-close aria-label="Close bag"><?= icon('close', 'h-5 w-5') ?></button>
         </div>
@@ -162,15 +172,15 @@ $catalogForClient = array_map(
         <div class="store-drawer__footer" data-cart-footer hidden>
             <div><span>Subtotal</span><strong data-cart-subtotal>PKR 0</strong></div>
             <p>Shipping and taxes calculated at checkout.</p>
-            <button class="button button--lime" type="button" data-foundation-notice="Secure checkout and server-verified totals connect in Phase 3.">Continue to checkout <?= icon('arrow-right', 'h-4 w-4') ?></button>
+            <a class="button button--lime" href="<?= e(url('checkout.php')) ?>">Continue to checkout <?= icon('arrow-right', 'h-4 w-4') ?></a>
         </div>
     </aside>
 
     <aside class="store-drawer" data-wishlist-drawer role="dialog" aria-modal="true" aria-labelledby="wishlist-title" aria-hidden="true">
         <div class="store-drawer__header">
             <div>
-                <p class="eyebrow">SAVED ON THIS DEVICE</p>
-                <h2 id="wishlist-title">Wishlist <span data-wishlist-count>0</span></h2>
+                <p class="eyebrow"><?= $viewer ? 'SAVED TO YOUR ACCOUNT' : 'SAVED FOR THIS SESSION' ?></p>
+                <h2 id="wishlist-title">Wishlist <span data-wishlist-count><?= count($initialWishlistIds) ?></span></h2>
             </div>
             <button class="overlay-close overlay-close--dark" type="button" data-wishlist-close aria-label="Close wishlist"><?= icon('close', 'h-5 w-5') ?></button>
         </div>
@@ -182,10 +192,16 @@ $catalogForClient = array_map(
             <div class="wishlist-lines" data-wishlist-lines></div>
         </div>
         <div class="store-drawer__footer drawer-account-note">
-            <p>Guest wishlist active. Account syncing arrives with customer authentication in Phase 3.</p>
-            <button class="text-link" type="button" data-foundation-notice="Customer accounts connect in Phase 3.">Account preview <?= icon('arrow-right', 'h-4 w-4') ?></button>
+            <?php if ($viewer): ?>
+                <p>Saved to <?= e($viewer['email']) ?> and available whenever you sign in.</p>
+                <a class="text-link" href="<?= e(url('account/wishlist.php')) ?>">View account wishlist <?= icon('arrow-right', 'h-4 w-4') ?></a>
+            <?php else: ?>
+                <p>Your session wishlist will merge into your account when you sign in.</p>
+                <a class="text-link" href="<?= e(url('login.php')) ?>">Sign in <?= icon('arrow-right', 'h-4 w-4') ?></a>
+            <?php endif; ?>
         </div>
     </aside>
 
     <div class="toast" data-toast role="status" aria-live="polite" aria-atomic="true"></div>
+    <script type="application/json" id="vanta-config"><?= json_encode($clientConfig, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES) ?></script>
     <script type="application/json" id="vanta-catalog"><?= json_encode($catalogForClient, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES) ?></script>

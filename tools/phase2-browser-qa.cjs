@@ -70,8 +70,10 @@ async function runDesktop(browser) {
     assert(await page.locator('.cart-line').count() === 1, 'quick add cart line');
     assert(await page.locator('[data-cart-count]').first().innerText() === '1', 'cart count after add');
     await page.locator('[data-cart-action="increase"]').click();
+    await page.waitForFunction(() => document.querySelector('[data-cart-count]')?.textContent === '2');
     assert(await page.locator('[data-cart-count]').first().innerText() === '2', 'cart quantity increase');
     await page.locator('[data-cart-action="remove"]').click();
+    await page.waitForFunction(() => !document.querySelector('[data-cart-empty]')?.hidden);
     assert(await page.locator('[data-cart-empty]').isVisible(), 'empty cart state');
     await page.keyboard.press('Escape');
 
@@ -81,7 +83,8 @@ async function runDesktop(browser) {
     assert(await email.getAttribute('aria-invalid') === 'true', 'newsletter invalid state');
     await email.fill('night@vanta.example');
     await page.locator('[data-newsletter-form] button').click();
-    assert((await page.locator('[data-newsletter-feedback]').innerText()).includes('Welcome'), 'newsletter success state');
+    await page.waitForFunction(() => document.querySelector('[data-newsletter-feedback]')?.textContent.trim().length > 0);
+    assert(/Welcome|already on the list/.test(await page.locator('[data-newsletter-feedback]').innerText()), 'newsletter success state');
 
     await Promise.all([
         page.waitForURL(/\/shop\.php$/),
@@ -136,6 +139,7 @@ async function runDesktop(browser) {
     await page.keyboard.press('Escape');
     assert(!(await page.locator('[data-size-guide]').evaluate((dialog) => dialog.open)), 'size guide Escape close');
     await page.locator('[data-add-to-bag]').click();
+    await page.waitForFunction(() => document.querySelector('[data-cart-drawer]')?.getAttribute('aria-hidden') === 'false');
     assert(await page.locator('[data-cart-drawer]').getAttribute('aria-hidden') === 'false', 'product add opens bag');
     await page.keyboard.press('Escape');
     await finishProduct();
@@ -197,6 +201,7 @@ async function runMobile(browser) {
     await page.locator('[data-filter-open]').click();
     assert(await page.locator('[data-filter-panel]').getAttribute('aria-hidden') === 'false', 'mobile filter opens');
     await page.keyboard.press('Escape');
+    await page.waitForFunction(() => document.querySelector('[data-filter-panel]')?.getAttribute('aria-hidden') === 'true');
     assert(await page.locator('[data-filter-panel]').getAttribute('aria-hidden') === 'true', 'mobile filter Escape close');
     await finishShop();
 

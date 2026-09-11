@@ -12,7 +12,7 @@
                 <a href="<?= e(url('shop.php')) ?>" data-transition-link data-transition-name="SHOP">All pieces</a>
                 <a href="<?= e(url('collection.php?collection=new-drop')) ?>" data-transition-link data-transition-name="NEW DROP">New Drop</a>
                 <a href="<?= e(url('index.php#collections')) ?>">Collections</a>
-                <button type="button" data-foundation-notice="Customer accounts connect in Phase 3.">Account</button>
+                <a href="<?= e(url(current_user() ? 'account/index.php' : 'login.php')) ?>">Account</a>
             </div>
             <div>
                 <p>Customer care</p>

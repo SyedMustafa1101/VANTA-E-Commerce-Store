@@ -1,4 +1,7 @@
 /config/database.php
+/config/mail.php
+/.composer-tools/
+/vendor/
 /.env
 /node_modules/
 /assets/css/tailwind.generated.css
@@ -7,4 +10,3 @@
 *.log
 .DS_Store
 Thumbs.db
-

@@ -37,8 +37,9 @@ $headerTheme = 'solid';
 $defaultColor = $product['colors'][0];
 $sizes = product_sizes($product);
 $defaultSize = in_array('M', $sizes, true) ? 'M' : $sizes[0];
-$related = array_values(array_filter(catalog_products(), static fn (array $item): bool => $item['id'] !== $product['id']));
-$related = array_slice($related, 0, 4);
+$related = product_repository()->related((int) $product['id'], 4);
+$reviews = (new ReviewRepository(db()))->approvedForProduct((int) $product['id']);
+$averageRating = $reviews === [] ? 0 : array_sum(array_column($reviews, 'rating')) / count($reviews);
 
 require __DIR__ . '/includes/header.php';
 ?>
@@ -132,9 +133,45 @@ require __DIR__ . '/includes/header.php';
         </aside>
     </div>
 
+    <section class="product-reviews section-pad" id="reviews">
+        <div class="container-vanta">
+            <div class="section-kicker section-kicker--dark" data-reveal><span>02</span><p>Worn / reviewed</p></div>
+            <div class="product-reviews__layout">
+                <div class="product-reviews__summary">
+                    <p class="eyebrow">COMMUNITY / NOTES</p>
+                    <h2><?= $reviews === [] ? 'No approved notes yet.' : e(number_format($averageRating, 1)) . ' / 5' ?></h2>
+                    <p><?= count($reviews) ?> approved <?= count($reviews) === 1 ? 'review' : 'reviews' ?>. New submissions are held for moderation.</p>
+                </div>
+                <div>
+                    <?php if ($reviews === []): ?>
+                        <div class="review-empty"><p>Be the first verified customer to leave a note on this piece.</p></div>
+                    <?php else: ?>
+                        <div class="review-list">
+                            <?php foreach ($reviews as $review): ?>
+                                <article><div><strong><?= str_repeat('★', (int) $review['rating']) ?><span class="sr-only"><?= (int) $review['rating'] ?> out of 5</span></strong><span><?= e($review['first_name'] . ' ' . mb_substr($review['last_name'], 0, 1) . '.') ?></span><time><?= e(date('d M Y', strtotime((string) $review['created_at']))) ?></time></div><p><?= nl2br(e($review['content'])) ?></p></article>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                    <?php if (current_user()): ?>
+                        <form class="vanta-form review-form" data-review-form data-product-id="<?= (int) $product['id'] ?>">
+                            <p class="eyebrow">PURCHASED THIS PIECE?</p>
+                            <h3>Leave your note.</h3>
+                            <label class="field"><span>Rating</span><select name="rating" required><option value="">Choose a rating</option><option value="5">5 — Exceptional</option><option value="4">4 — Strong</option><option value="3">3 — Good</option><option value="2">2 — Needs work</option><option value="1">1 — Poor</option></select></label>
+                            <label class="field"><span>Review</span><textarea name="content" rows="5" minlength="20" maxlength="1500" placeholder="Fit, weight, construction, and how it wears." required></textarea></label>
+                            <p data-review-feedback aria-live="polite"></p>
+                            <button class="button button--lime" type="submit">Submit for review</button>
+                        </form>
+                    <?php else: ?>
+                        <p class="review-signin"><a class="text-link" href="<?= e(url('login.php?return=' . rawurlencode('product.php?slug=' . $product['slug'] . '#reviews'))) ?>">Sign in after purchase to review this piece <?= icon('arrow-right', 'h-4 w-4') ?></a></p>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section class="related-products section-pad">
         <div class="container-vanta">
-            <div class="section-kicker" data-reveal><span>02</span><p>Continue the uniform</p></div>
+            <div class="section-kicker" data-reveal><span>03</span><p>Continue the uniform</p></div>
             <div class="related-products__heading" data-reveal>
                 <h2>Wear it with.</h2>
                 <a class="text-link" href="<?= e(url('shop.php')) ?>" data-transition-link data-transition-name="SHOP">Shop all <?= icon('arrow-right', 'h-4 w-4') ?></a>

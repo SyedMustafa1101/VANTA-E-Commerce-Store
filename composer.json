@@ -1,0 +1,14 @@
+{
+    "name": "vanta/storefront",
+    "description": "VANTA PHP and MySQL commerce storefront.",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.0",
+        "phpmailer/phpmailer": "^7.1"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}

@@ -1,6 +1,6 @@
 # Phase 2 — animated storefront
 
-Phase 2 is a frontend-only commerce experience. It uses structured PHP sample data and browser-local guest state so the interaction model can be reviewed before Phase 3 introduces MySQL, authentication, orders, or administrative workflows.
+Phase 2 established the approved storefront and interaction contract. This document preserves that original visual reference. Phase 3 now supplies its products and commerce state through MySQL and PHP services without redesigning the experience; Phase 4 administration remains deferred.
 
 ## Routes
 
@@ -13,7 +13,7 @@ Phase 2 is a frontend-only commerce experience. It uses structured PHP sample da
 - `/product.php?slug=vanta-oversized-essential-tee` — representative product detail route;
 - `/design-system.php` — preserved Phase 1 visual-system reference.
 
-`includes/catalog.php` is the single Phase 2 product-data source. Product cards are rendered through `includes/product-card.php`. Guest cart and wishlist state use the `vanta.phase2.cart` and `vanta.phase2.wishlist` local-storage keys. Those values are presentation state only; Phase 3 must validate price, inventory, identity, and orders on the server.
+Product cards still render through `includes/product-card.php`, while `includes/catalog.php` is now a compatibility adapter over `ProductRepository`. The cart drawer, wishlist controls, search, and filters keep their approved UI, but Phase 3 stores guest state in the PHP session and authenticated state in MySQL. The server validates current price, inventory, identity, coupons, shipping, and orders.
 
 ## Image replacement guide
 
@@ -36,4 +36,4 @@ The three catalog assets were created with the built-in ImageGen workflow in `ph
 
 ## Phase 2 QA
 
-The storefront is exercised at 1440px desktop and 390px mobile widths. Coverage includes direct and deep URLs, animated navigation plus browser back/forward history, search, filters, sorting, product selection and out-of-stock states, size-guide dismissal, cart and wishlist persistence behaviors, newsletter validation, reduced-motion mode, runtime/console/resource errors, and horizontal overflow. The local browser harness is `tools/phase2-browser-qa.cjs`; it expects the site at `http://127.0.0.1:8000`.
+The storefront is exercised at 1440px desktop and 390px mobile widths. Coverage includes direct and deep URLs, animated navigation plus browser back/forward history, database-driven search, filters and sorting, product selection and out-of-stock states, size-guide dismissal, server-backed cart and wishlist persistence, newsletter validation, reduced-motion mode, runtime/console/resource errors, and horizontal overflow. The local browser harness is `tools/phase2-browser-qa.cjs`; it expects the site at `http://127.0.0.1:8000`.
