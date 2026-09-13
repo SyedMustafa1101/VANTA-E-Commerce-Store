@@ -1,0 +1,15 @@
+<?php
+
+declare(strict_types=1);
+
+require __DIR__.'/_init.php';require_admin();
+if(($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
+    try{admin_post_guard();admin_service()->saveSettings($_POST);flash('success','Store settings updated.');}
+    catch(Throwable$exception){admin_flash_exception($exception);}admin_redirect('settings.php');
+}
+$settings=admin_repository()->settings();$mail=mail_config();$adminTitle='Settings';$adminPage='settings';$adminSection='System';require __DIR__.'/_header.php';
+?>
+<form method="post"><?= csrf_field() ?><div class="form-grid"><div><section class="form-section form-stack"><h2>Store identity</h2><div class="field-row"><label class="field"><span>Store name</span><input name="store_name" value="<?= e($settings['store_name']??'VANTA') ?>" required></label><label class="field"><span>Currency</span><input name="currency" maxlength="3" value="<?= e($settings['currency']??'PKR') ?>" required></label></div><label class="field"><span>Brand tagline</span><input name="brand_tagline" value="<?= e($settings['brand_tagline']??'Built for after dark.') ?>"></label><div class="field-row"><label class="field"><span>Contact email</span><input type="email" name="contact_email" value="<?= e($settings['contact_email']??'support@vanta.local') ?>" required></label><label class="field"><span>Support email</span><input type="email" name="support_email" value="<?= e($settings['support_email']??'support@vanta.local') ?>" required></label></div><label class="field"><span>Default country</span><input name="default_country" value="<?= e($settings['default_country']??'Pakistan') ?>" required></label></section>
+<section class="form-section form-stack"><h2>Commerce rules</h2><div class="field-row--3 field-row"><label class="field"><span>Shipping fee</span><input type="number" min="0" step="0.01" name="shipping_standard_pkr" value="<?= e($settings['shipping_standard_pkr']??'300') ?>" required></label><label class="field"><span>Free shipping threshold</span><input type="number" min="0" step="0.01" name="free_shipping_threshold_pkr" value="<?= e($settings['free_shipping_threshold_pkr']??'15000') ?>" required></label><label class="field"><span>Low stock threshold</span><input type="number" min="0" step="1" name="low_stock_threshold" value="<?= e($settings['low_stock_threshold']??'5') ?>" required></label></div><p>Shipping values feed the existing server-side checkout quote. The low-stock threshold feeds dashboard and inventory warnings.</p></section></div>
+<aside><section class="form-section sticky-card"><h2>Mail boundary</h2><dl class="definition-list"><dt>SMTP</dt><dd><span class="<?= e(admin_status_class(!empty($mail['enabled'])?'active':'disabled')) ?>"><?= !empty($mail['enabled'])?'Configured':'Disabled' ?></span></dd><dt>Credentials</dt><dd>Stored only in ignored local configuration.</dd></dl><p>No SMTP hostname, username, password, or transport error is exposed here.</p><div class="form-footer"><button class="button button--primary" type="submit">Save settings</button></div></section></aside></div></form>
+<?php require __DIR__.'/_footer.php'; ?>

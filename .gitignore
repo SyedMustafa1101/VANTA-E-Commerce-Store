@@ -5,8 +5,14 @@
 /.env
 /node_modules/
 /assets/css/tailwind.generated.css
+/tools/qa-sessions/
+/tools/qa-artifacts/
 /uploads/*
 !/uploads/.gitkeep
+!/uploads/.htaccess
+!/uploads/products/
+/uploads/products/*
+!/uploads/products/.gitkeep
 *.log
 .DS_Store
 Thumbs.db

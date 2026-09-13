@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/includes/bootstrap.php';
 $user = current_user();
+$defaultCountry = trim((string) setting('default_country', 'Pakistan')) ?: 'Pakistan';
 $address = null;
 if ($user !== null) {
     $savedAddresses = (new AddressRepository(db()))->forUser((int) $user['id']);
@@ -21,7 +22,7 @@ $defaults = [
     'city' => (string) ($address['city'] ?? ''),
     'province' => (string) ($address['province'] ?? 'Sindh'),
     'postal_code' => (string) ($address['postal_code'] ?? ''),
-    'country' => (string) ($address['country'] ?? 'Pakistan'),
+    'country' => (string) ($address['country'] ?? $defaultCountry),
     'payment_method' => 'cash_on_delivery',
 ];
 $values = $defaults;
@@ -83,7 +84,7 @@ require __DIR__ . '/includes/header.php';
                     <div class="field-row"><label class="field"><span>Postal code <em>Optional</em></span><input name="postal_code" value="<?= e($values['postal_code']) ?>" autocomplete="postal-code"></label><label class="field"><span>Country</span><input name="country" value="<?= e($values['country']) ?>" autocomplete="country-name" required><?php if (isset($errors['country'])): ?><small><?= e($errors['country']) ?></small><?php endif; ?></label></div>
                 </div>
             </section>
-            <section class="checkout-step"><div class="checkout-step__title"><span>03</span><div><p>Shipping method</p><h2>Standard Pakistan delivery.</h2></div></div><div class="checkout-choice is-selected"><span>Standard</span><strong><?= $quote['shipping'] > 0 ? e(format_pkr($quote['shipping'])) : 'Free' ?></strong><small>Estimated 2–5 working days</small></div></section>
+            <section class="checkout-step"><div class="checkout-step__title"><span>03</span><div><p>Shipping method</p><h2>Standard <?= e($defaultCountry) ?> delivery.</h2></div></div><div class="checkout-choice is-selected"><span>Standard</span><strong><?= $quote['shipping'] > 0 ? e(format_pkr($quote['shipping'])) : 'Free' ?></strong><small>Estimated 2–5 working days</small></div></section>
             <section class="checkout-step"><div class="checkout-step__title"><span>04</span><div><p>Payment method</p><h2>Choose how to pay.</h2></div></div>
                 <div class="payment-options">
                     <label><input type="radio" name="payment_method" value="cash_on_delivery" <?= $values['payment_method'] === 'cash_on_delivery' ? 'checked' : '' ?>><span><strong>Cash on Delivery</strong><small>Payment is due when your order arrives.</small></span></label>
@@ -107,4 +108,3 @@ require __DIR__ . '/includes/header.php';
     <?php endif; ?>
 </main>
 <?php require __DIR__ . '/includes/footer.php'; ?>
-

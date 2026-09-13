@@ -49,7 +49,7 @@ require __DIR__ . '/includes/header.php';
         <section class="product-gallery" aria-label="<?= e($product['name']) ?> gallery">
             <?php foreach ($product['images'] as $index => $image): ?>
                 <figure class="product-gallery__item<?= $index === 0 ? ' product-gallery__item--lead' : '' ?>">
-                    <img data-gallery-image src="<?= e(asset($image)) ?>" alt="<?= $index === 0 ? e($product['name'] . ' in ' . $defaultColor['name']) : '' ?>" width="1122" height="1402" <?= $index > 0 ? 'loading="lazy"' : 'fetchpriority="high"' ?>>
+                    <img data-gallery-image src="<?= e(media_url($image)) ?>" alt="<?= $index === 0 ? e($product['name'] . ' in ' . $defaultColor['name']) : '' ?>" width="1122" height="1402" <?= $index > 0 ? 'loading="lazy"' : 'fetchpriority="high"' ?>>
                     <span><?= e(str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT)) ?> / <?= e(str_pad((string) count($product['images']), 2, '0', STR_PAD_LEFT)) ?></span>
                 </figure>
             <?php endforeach; ?>

@@ -1,0 +1,18 @@
+<?php
+
+declare(strict_types=1);
+
+require __DIR__.'/_init.php';$admin=require_admin();
+if(($_SERVER['REQUEST_METHOD']??'GET')==='POST'){
+    try{admin_post_guard();$action=(string)($_POST['action']??'save');$id=filter_var($_POST['id']??null,FILTER_VALIDATE_INT)?:null;
+        if($action==='save'){admin_service()->saveTaxonomy('category',$_POST,$id);flash('success','Category saved.');}
+        elseif($action==='delete'&&$id){if(!admin_repository()->deleteTaxonomyIfSafe('categories',$id))throw new DomainException('Reassign or archive products in this category before deleting it.');admin_repository()->audit((int)$admin['id'],'category.delete','category',$id,'Deleted unused category.');flash('success','Category deleted.');}
+        else throw new DomainException('Invalid category action.');
+    }catch(Throwable$exception){admin_flash_exception($exception);}admin_redirect('categories.php');
+}
+$rows=admin_repository()->categories();$editId=filter_var($_GET['edit']??null,FILTER_VALIDATE_INT)?:null;$edit=null;foreach($rows as$row)if((int)$row['id']===$editId)$edit=$row;
+$adminTitle='Categories';$adminPage='categories';$adminSection='Store';require __DIR__.'/_header.php';
+?>
+<div class="detail-grid"><section class="panel"><header class="panel__header"><h2>Catalog categories</h2><span><?= count($rows) ?> total</span></header><div class="table-wrap"><table class="data-table"><thead><tr><th>Name</th><th>Slug</th><th>Status</th><th class="numeric">Sort</th><th class="numeric">Products</th><th></th></tr></thead><tbody><?php foreach($rows as$row): ?><tr><td><strong><?= e((string)$row['name']) ?></strong><small><?= e((string)$row['description']) ?></small></td><td><?= e((string)$row['slug']) ?></td><td><span class="<?= e(admin_status_class($row['is_active']?'active':'disabled')) ?>"><?= $row['is_active']?'Active':'Disabled' ?></span></td><td class="numeric"><?= (int)$row['sort_order'] ?></td><td class="numeric"><?= (int)$row['product_count'] ?></td><td class="actions"><a class="button button--small button--quiet" href="?edit=<?= (int)$row['id'] ?>">Edit</a><form method="post" data-confirm="Delete this unused category?"><?= csrf_field() ?><input type="hidden" name="id" value="<?= (int)$row['id'] ?>"><button class="button button--small button--danger" name="action" value="delete" <?= (int)$row['product_count']>0?'disabled title="Category is in use"':'' ?>>Delete</button></form></td></tr><?php endforeach; ?></tbody></table></div></section>
+<aside><form method="post" class="form-section form-stack sticky-card"><?= csrf_field() ?><input type="hidden" name="action" value="save"><input type="hidden" name="id" value="<?= (int)($edit['id']??0) ?>"><h2><?= $edit?'Edit':'Add' ?> category</h2><label class="field"><span>Name</span><input id="category-name" data-slug-source="#category-slug" name="name" value="<?= e((string)($edit['name']??'')) ?>" required></label><label class="field"><span>Slug</span><input id="category-slug" name="slug" value="<?= e((string)($edit['slug']??'')) ?>" required></label><label class="field"><span>Description</span><textarea name="description"><?= e((string)($edit['description']??'')) ?></textarea></label><label class="field"><span>Sort order</span><input type="number" min="0" name="sort_order" value="<?= (int)($edit['sort_order']??0) ?>"></label><label class="check-field"><input type="checkbox" name="is_active" value="1" <?= !isset($edit['is_active'])||$edit['is_active']?'checked':'' ?>> Active on storefront</label><div class="form-footer"><?php if($edit): ?><a class="button button--quiet" href="categories.php">Cancel</a><?php endif; ?><button class="button button--primary" type="submit">Save</button></div></form></aside></div>
+<?php require __DIR__.'/_footer.php'; ?>

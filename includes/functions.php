@@ -31,6 +31,16 @@ function asset(string $path): string
     return url('assets/' . ltrim($path, '/'));
 }
 
+/** Resolve seeded assets and runtime uploads without accepting arbitrary URLs. */
+function media_url(string $path): string
+{
+    $clean = str_replace('\\', '/', trim($path));
+    if ($clean === '' || str_contains($clean, '..') || preg_match('/[\x00-\x1F\x7F]/', $clean)) {
+        return '';
+    }
+    return str_starts_with($clean, 'uploads/') ? url($clean) : asset($clean);
+}
+
 function is_active_page(string $page, string $currentPage): bool
 {
     return $page === $currentPage;

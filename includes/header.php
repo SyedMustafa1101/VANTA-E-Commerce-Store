@@ -12,10 +12,10 @@ $initialCart = cart_service()->summary();
 $initialWishlistIds = wishlist_service()->productIds();
 $catalogForClient = array_map(
     static function (array $product): array {
-        $product['images'] = array_map(static fn (string $image): string => asset($image), $product['images']);
+        $product['images'] = array_map(static fn (string $image): string => media_url($image), $product['images']);
         $product['colors'] = array_map(
             static function (array $color): array {
-                $color['images'] = array_map(static fn (string $image): string => asset($image), $color['images']);
+                $color['images'] = array_map(static fn (string $image): string => media_url($image), $color['images']);
                 return $color;
             },
             $product['colors']

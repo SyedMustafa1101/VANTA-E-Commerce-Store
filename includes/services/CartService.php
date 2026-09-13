@@ -113,7 +113,7 @@ final class CartService
                 'color_slug' => (string) $variant['color_slug'],
                 'size' => (string) $variant['size'],
                 'sku' => (string) $variant['sku'],
-                'image' => asset((string) $variant['image_path']),
+                'image' => media_url((string) $variant['image_path']),
                 'quantity' => $quantity,
                 'stock' => (int) $variant['stock_quantity'],
                 'available' => $variant['is_active'] && (int) $variant['stock_quantity'] >= $quantity,

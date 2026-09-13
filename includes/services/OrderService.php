@@ -143,7 +143,7 @@ final class OrderService
                 'shipping_province' => $input['province'],
                 'shipping_postal_code' => $input['postal_code'] ?: null,
                 'shipping_country' => $input['country'],
-                'shipping_method' => 'Standard Pakistan Delivery',
+                'shipping_method' => 'Standard ' . (trim((string) setting('default_country', 'Pakistan')) ?: 'Pakistan') . ' Delivery',
                 'payment_method' => $paymentMethod,
                 'payment_status' => $paymentStatus,
                 'order_status' => $orderStatus,

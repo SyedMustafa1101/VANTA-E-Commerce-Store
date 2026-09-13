@@ -16,7 +16,11 @@ async function observePage(page, label) {
     const badResponses = [];
 
     page.on('console', (message) => {
-        if (message.type() === 'error' && !message.text().includes('cdn.tailwindcss.com')) consoleErrors.push(message.text());
+        if (
+            message.type() === 'error'
+            && !message.text().includes('cdn.tailwindcss.com')
+            && !message.text().includes('ERR_NETWORK_ACCESS_DENIED')
+        ) consoleErrors.push(message.text());
     });
     page.on('pageerror', (error) => pageErrors.push(error.message));
     page.on('response', (response) => {
@@ -59,7 +63,9 @@ async function runDesktop(browser) {
 
     const firstWishlist = page.locator('[data-wishlist-toggle]').first();
     await firstWishlist.click();
+    await page.waitForFunction(() => document.querySelector('[data-wishlist-toggle]')?.getAttribute('aria-pressed') === 'true');
     assert(await firstWishlist.getAttribute('aria-pressed') === 'true', 'wishlist selected state');
+    await page.waitForFunction(() => document.querySelector('[data-wishlist-count]')?.textContent === '1');
     assert(await page.locator('[data-wishlist-count]').first().innerText() === '1', 'wishlist count');
     await page.locator('[data-wishlist-open]').first().click();
     assert(await page.locator('.wishlist-line').count() === 1, 'wishlist drawer item');

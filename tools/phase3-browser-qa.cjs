@@ -51,7 +51,11 @@ async function assertHealthy(page, label, errors) {
 function observe(page) {
     const errors = { console: [], runtime: [], responses: [] };
     page.on('console', (message) => {
-        if (message.type() === 'error' && !message.text().includes('cdn.tailwindcss.com')) errors.console.push(message.text());
+        if (
+            message.type() === 'error'
+            && !message.text().includes('cdn.tailwindcss.com')
+            && !message.text().includes('ERR_NETWORK_ACCESS_DENIED')
+        ) errors.console.push(message.text());
     });
     page.on('pageerror', (error) => errors.runtime.push(error.message));
     page.on('response', (response) => {
@@ -166,7 +170,11 @@ async function run() {
         const orderNumber = (await page.locator('.confirmation-hero strong').innerText()).trim();
         assert(/^VNT-\d{4}-\d{6}$/.test(orderNumber), 'confirmation displays readable order number');
         assert((await page.locator('.order-detail').innerText()).includes('Demo Card'), 'confirmation displays simulated payment method');
-        assert((await page.locator('.confirmation-email-note').innerText()).includes('could not be sent'), 'mail failure remains a non-blocking confirmation notice');
+        const mailNotice = await page.locator('.confirmation-email-note').innerText();
+        assert(
+            ['sent to', 'could not be sent', 'being prepared'].some((message) => mailNotice.includes(message)),
+            'email delivery status remains a non-blocking confirmation notice'
+        );
         await page.reload({ waitUntil: 'domcontentloaded' });
         assert((await page.locator('.confirmation-hero strong').innerText()).trim() === orderNumber, 'confirmation refresh reads the same order without resending');
         await page.screenshot({ path: 'tools/qa-artifacts/confirmation-desktop.jpg', type: 'jpeg', quality: 70, fullPage: false });

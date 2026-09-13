@@ -12,7 +12,7 @@ declare(strict_types=1);
         <div class="order-items">
             <?php foreach ($order['items'] as $item): ?>
                 <article>
-                    <?php if ($item['image_path']): ?><img src="<?= e(asset((string) $item['image_path'])) ?>" alt="" width="220" height="275"><?php endif; ?>
+                    <?php if ($item['image_path']): ?><img src="<?= e(media_url((string) $item['image_path'])) ?>" alt="" width="220" height="275"><?php endif; ?>
                     <div><p><?= e($item['sku']) ?></p><h3><?= e($item['product_name']) ?></h3><span><?= e($item['variant_description']) ?> / Qty <?= (int) $item['quantity'] ?></span></div>
                     <strong><?= e(format_pkr((float) $item['line_total'])) ?></strong>
                 </article>
@@ -31,4 +31,3 @@ declare(strict_types=1);
         </aside>
     </div>
 </div>
-

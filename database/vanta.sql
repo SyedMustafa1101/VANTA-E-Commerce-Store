@@ -1,5 +1,5 @@
--- VANTA Phase 3 commerce schema
--- Import into an empty database named vanta. No customer data is dropped.
+-- VANTA Phase 4 complete commerce + administration schema
+-- Existing Phase 3 databases should run database/migrations/phase4_admin.sql.
 SET NAMES utf8mb4;
 SET time_zone = '+05:00';
 
@@ -40,9 +40,14 @@ CREATE TABLE IF NOT EXISTS categories (
  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
  name VARCHAR(100) NOT NULL,
  slug VARCHAR(120) NOT NULL,
+ description TEXT NOT NULL,
+ is_active TINYINT(1) NOT NULL DEFAULT 1,
+ sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
  UNIQUE KEY uq_categories_name (name),
- UNIQUE KEY uq_categories_slug (slug)
+ UNIQUE KEY uq_categories_slug (slug),
+ KEY idx_categories_admin (is_active,sort_order,name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS collections (
@@ -53,12 +58,14 @@ CREATE TABLE IF NOT EXISTS collections (
  description TEXT NOT NULL,
  primary_image VARCHAR(255) NOT NULL,
  secondary_image VARCHAR(255) NOT NULL,
+ is_active TINYINT(1) NOT NULL DEFAULT 1,
+ is_featured TINYINT(1) NOT NULL DEFAULT 0,
  sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
  UNIQUE KEY uq_collections_name (name),
  UNIQUE KEY uq_collections_slug (slug),
- KEY idx_collections_sort (sort_order)
+ KEY idx_collections_sort (is_active,sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS products (
@@ -67,6 +74,7 @@ CREATE TABLE IF NOT EXISTS products (
  collection_id INT UNSIGNED NOT NULL,
  slug VARCHAR(190) NOT NULL,
  name VARCHAR(190) NOT NULL,
+ short_description VARCHAR(500) NOT NULL DEFAULT '',
  description TEXT NOT NULL,
  materials TEXT NOT NULL,
  care TEXT NOT NULL,
@@ -75,13 +83,18 @@ CREATE TABLE IF NOT EXISTS products (
  label VARCHAR(40) NULL,
  popularity SMALLINT UNSIGNED NOT NULL DEFAULT 0,
  keywords JSON NULL,
+ status ENUM('draft','active','archived') NOT NULL DEFAULT 'active',
+ is_featured TINYINT(1) NOT NULL DEFAULT 0,
+ meta_title VARCHAR(190) NULL,
+ meta_description VARCHAR(320) NULL,
  is_active TINYINT(1) NOT NULL DEFAULT 1,
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
  CONSTRAINT fk_products_category FOREIGN KEY (category_id) REFERENCES categories(id),
  CONSTRAINT fk_products_collection FOREIGN KEY (collection_id) REFERENCES collections(id),
  UNIQUE KEY uq_products_slug (slug),
- KEY idx_products_active_collection (is_active,collection_id),
+ KEY idx_products_active_collection (is_active,status,collection_id),
+ KEY idx_products_admin_status (status,is_featured,updated_at),
  KEY idx_products_category (category_id),
  KEY idx_products_popularity (popularity),
  KEY idx_products_price (price),
@@ -95,10 +108,17 @@ CREATE TABLE IF NOT EXISTS product_images (
  color_slug VARCHAR(80) NOT NULL DEFAULT '',
  path VARCHAR(255) NOT NULL,
  alt_text VARCHAR(255) NOT NULL DEFAULT '',
+ role ENUM('gallery','campaign','detail') NOT NULL DEFAULT 'gallery',
+ is_primary TINYINT(1) NOT NULL DEFAULT 0,
+ is_uploaded TINYINT(1) NOT NULL DEFAULT 0,
+ mime_type VARCHAR(100) NULL,
+ file_size INT UNSIGNED NULL,
+ width INT UNSIGNED NULL,
+ height INT UNSIGNED NULL,
  sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
  CONSTRAINT fk_product_images_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
- UNIQUE KEY uq_product_images_slot (product_id,color_slug,sort_order),
+ KEY idx_product_images_sort (product_id,color_slug,sort_order),
  KEY idx_product_images_lookup (product_id,color_slug,sort_order)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -110,11 +130,13 @@ CREATE TABLE IF NOT EXISTS product_variants (
  color_hex CHAR(7) NOT NULL,
  size VARCHAR(20) NOT NULL,
  sku VARCHAR(100) NOT NULL,
+ image_id BIGINT UNSIGNED NULL,
  stock_quantity INT NOT NULL DEFAULT 0,
  is_active TINYINT(1) NOT NULL DEFAULT 1,
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
  CONSTRAINT fk_product_variants_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+ CONSTRAINT fk_product_variants_image FOREIGN KEY (image_id) REFERENCES product_images(id) ON DELETE SET NULL,
  UNIQUE KEY uq_product_variant_option (product_id,color_slug,size),
  UNIQUE KEY uq_product_variants_sku (sku),
  KEY idx_product_variants_stock (product_id,is_active,stock_quantity),
@@ -217,6 +239,7 @@ CREATE TABLE IF NOT EXISTS orders (
  shipping_total DECIMAL(12,2) NOT NULL DEFAULT 0,
  total DECIMAL(12,2) NOT NULL,
  coupon_code VARCHAR(60) NULL,
+ inventory_restored_at DATETIME NULL,
  placed_at DATETIME NOT NULL,
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -319,6 +342,73 @@ CREATE TABLE IF NOT EXISTS login_attempts (
  KEY idx_login_attempts_throttle (email,ip_hash,attempted_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS admins (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ name VARCHAR(160) NOT NULL,
+ email VARCHAR(190) NOT NULL,
+ password_hash VARCHAR(255) NOT NULL,
+ role ENUM('SUPER_ADMIN','ADMIN') NOT NULL DEFAULT 'ADMIN',
+ active TINYINT(1) NOT NULL DEFAULT 1,
+ last_login_at DATETIME NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_admins_email (email),
+ KEY idx_admins_role_active (role,active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS admin_login_attempts (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ email VARCHAR(190) NOT NULL,
+ ip_hash CHAR(64) NOT NULL,
+ attempted_at DATETIME NOT NULL,
+ was_successful TINYINT(1) NOT NULL DEFAULT 0,
+ KEY idx_admin_login_throttle (email,ip_hash,attempted_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS inventory_adjustments (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ variant_id BIGINT UNSIGNED NOT NULL,
+ admin_id BIGINT UNSIGNED NOT NULL,
+ change_amount INT NOT NULL,
+ reason ENUM('restock','correction','return','damage','manual_adjustment','order_cancellation') NOT NULL,
+ note VARCHAR(255) NULL,
+ previous_stock INT UNSIGNED NOT NULL,
+ new_stock INT UNSIGNED NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT fk_inventory_adjustments_variant FOREIGN KEY (variant_id) REFERENCES product_variants(id) ON DELETE RESTRICT,
+ CONSTRAINT fk_inventory_adjustments_admin FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE RESTRICT,
+ KEY idx_inventory_adjustments_variant_date (variant_id,created_at),
+ KEY idx_inventory_adjustments_admin_date (admin_id,created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS order_status_history (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ order_id BIGINT UNSIGNED NOT NULL,
+ admin_id BIGINT UNSIGNED NULL,
+ from_status VARCHAR(40) NULL,
+ to_status VARCHAR(40) NOT NULL,
+ payment_from_status VARCHAR(40) NULL,
+ payment_to_status VARCHAR(40) NULL,
+ note VARCHAR(255) NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT fk_order_status_history_order FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+ CONSTRAINT fk_order_status_history_admin FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL,
+ KEY idx_order_status_history_order_date (order_id,created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS admin_audit_logs (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ admin_id BIGINT UNSIGNED NULL,
+ action VARCHAR(100) NOT NULL,
+ entity_type VARCHAR(80) NOT NULL,
+ entity_id BIGINT UNSIGNED NULL,
+ summary VARCHAR(500) NOT NULL,
+ created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CONSTRAINT fk_admin_audit_logs_admin FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE SET NULL,
+ KEY idx_admin_audit_entity (entity_type,entity_id,created_at),
+ KEY idx_admin_audit_admin_date (admin_id,created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS settings (
  setting_key VARCHAR(100) PRIMARY KEY,
  setting_value VARCHAR(255) NOT NULL,
@@ -389,5 +479,18 @@ ON DUPLICATE KEY UPDATE type=VALUES(type),value=VALUES(value),minimum_order=VALU
 
 INSERT INTO settings (setting_key,setting_value) VALUES
  ('shipping_standard_pkr','300'),('free_shipping_threshold_pkr','15000'),
- ('store_country','Pakistan'),('review_requires_purchase','1')
+ ('store_country','Pakistan'),('review_requires_purchase','1'),
+ ('store_name','VANTA'),('contact_email','support@vanta.local'),('currency','PKR'),
+ ('low_stock_threshold','5'),('brand_tagline','Built for after dark.'),
+ ('support_email','support@vanta.local'),('default_country','Pakistan')
 ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value);
+
+UPDATE product_images pi
+JOIN (
+ SELECT product_id, MIN(sort_order) AS first_sort
+ FROM product_images
+ WHERE color_slug = ''
+ GROUP BY product_id
+) first_image ON first_image.product_id = pi.product_id AND first_image.first_sort = pi.sort_order
+SET pi.is_primary = 1
+WHERE pi.color_slug = '';

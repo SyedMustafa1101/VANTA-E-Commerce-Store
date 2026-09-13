@@ -11,14 +11,14 @@ final class ProductRepository
     /** @return array<int, array<string, mixed>> */
     public function all(): array
     {
-        $rows = $this->pdo->query($this->baseSelect() . ' WHERE p.is_active = 1 ORDER BY p.id')->fetchAll();
+        $rows = $this->pdo->query($this->baseSelect() . ' WHERE p.is_active = 1 AND p.status = \'active\' AND cat.is_active = 1 AND c.is_active = 1 ORDER BY p.id')->fetchAll();
         return $this->hydrate($rows);
     }
 
     /** @return array<string, mixed>|null */
     public function findBySlug(string $slug): ?array
     {
-        $statement = $this->pdo->prepare($this->baseSelect() . ' WHERE p.slug = ? AND p.is_active = 1 LIMIT 1');
+        $statement = $this->pdo->prepare($this->baseSelect() . ' WHERE p.slug = ? AND p.is_active = 1 AND p.status = \'active\' AND cat.is_active = 1 AND c.is_active = 1 LIMIT 1');
         $statement->execute([$slug]);
         $rows = $statement->fetchAll();
         return $rows === [] ? null : $this->hydrate($rows)[0];
@@ -27,7 +27,7 @@ final class ProductRepository
     /** @return array<int, array<string, mixed>> */
     public function forCollection(string $name): array
     {
-        $statement = $this->pdo->prepare($this->baseSelect() . ' WHERE c.name = ? AND p.is_active = 1 ORDER BY p.id');
+        $statement = $this->pdo->prepare($this->baseSelect() . ' WHERE c.name = ? AND p.is_active = 1 AND p.status = \'active\' AND cat.is_active = 1 AND c.is_active = 1 ORDER BY p.id');
         $statement->execute([$name]);
         return $this->hydrate($statement->fetchAll());
     }
@@ -38,7 +38,7 @@ final class ProductRepository
         $statement = $this->pdo->prepare(
             $this->baseSelect()
             . ' JOIN product_relations pr ON pr.related_product_id = p.id'
-            . ' WHERE pr.product_id = ? AND p.is_active = 1'
+            . ' WHERE pr.product_id = ? AND p.is_active = 1 AND p.status = \'active\' AND cat.is_active = 1 AND c.is_active = 1'
             . ' ORDER BY pr.sort_order LIMIT ' . max(1, min($limit, 12))
         );
         $statement->execute([$productId]);
@@ -50,7 +50,7 @@ final class ProductRepository
     {
         $rows = $this->pdo->query(
             'SELECT id, name, slug, eyebrow, description, primary_image, secondary_image
-             FROM collections ORDER BY sort_order, id'
+             FROM collections WHERE is_active = 1 ORDER BY sort_order, id'
         )->fetchAll();
         $collections = [];
         foreach ($rows as $row) {
@@ -83,7 +83,7 @@ final class ProductRepository
     {
         return array_map(
             static fn (array $row): string => (string) $row['name'],
-            $this->pdo->query('SELECT name FROM categories ORDER BY id')->fetchAll()
+            $this->pdo->query('SELECT name FROM categories WHERE is_active = 1 ORDER BY sort_order, id')->fetchAll()
         );
     }
 
@@ -94,6 +94,8 @@ final class ProductRepository
                        v.stock_quantity, v.is_active, p.name, p.slug, p.price, p.sale_price,
                        p.is_active AS product_active, c.name AS collection_name,
                        COALESCE(
+                         (SELECT assigned.path FROM product_images assigned
+                          WHERE assigned.id = v.image_id AND assigned.product_id = p.id LIMIT 1),
                          (SELECT pi.path FROM product_images pi
                           WHERE pi.product_id = p.id AND pi.color_slug = v.color_slug
                           ORDER BY pi.sort_order LIMIT 1),
@@ -165,7 +167,7 @@ final class ProductRepository
 
         $imageStatement = $this->pdo->prepare(
             'SELECT product_id, color_slug, path FROM product_images
-             WHERE product_id IN (' . $marks . ') ORDER BY product_id, color_slug, sort_order'
+             WHERE product_id IN (' . $marks . ') ORDER BY product_id, color_slug, is_primary DESC, sort_order'
         );
         $imageStatement->execute($ids);
         $baseImages = [];

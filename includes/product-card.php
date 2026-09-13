@@ -34,8 +34,8 @@ function render_product_card(array $product, int $index = 0): void
     >
         <div class="product-card__media">
             <a href="<?= e(url('product.php?slug=' . rawurlencode($product['slug']))) ?>" data-transition-link data-transition-name="PRODUCT" aria-label="View <?= e($product['name']) ?>">
-                <img class="product-card__image product-card__image--primary" src="<?= e(asset($primaryImage)) ?>" alt="<?= e($product['name']) ?> in <?= e($product['colors'][0]['name']) ?>" width="1122" height="1402" <?= $index > 1 ? 'loading="lazy"' : '' ?>>
-                <img class="product-card__image product-card__image--secondary" src="<?= e(asset($secondaryImage)) ?>" alt="" width="1122" height="1402" loading="lazy" aria-hidden="true">
+                <img class="product-card__image product-card__image--primary" src="<?= e(media_url($primaryImage)) ?>" alt="<?= e($product['name']) ?> in <?= e($product['colors'][0]['name']) ?>" width="1122" height="1402" <?= $index > 1 ? 'loading="lazy"' : '' ?>>
+                <img class="product-card__image product-card__image--secondary" src="<?= e(media_url($secondaryImage)) ?>" alt="" width="1122" height="1402" loading="lazy" aria-hidden="true">
             </a>
 
             <?php if (!empty($product['label'])): ?>
